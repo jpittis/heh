@@ -11,6 +11,22 @@ mysql> ^DBye
 $ heh stop
 ```
 
+### Usage
+
+```
+$ heh --help
+dev-mysql
+
+Usage: heh (START | STOP | RESART | REPL)
+
+Available options:
+  -h,--help                Show this help text
+  START                    start mysql container
+  STOP                     stop mysql container
+  RESART                   restart mysql container
+  REPL                     start repl to mysql container
+```
+
 ### Install
 
 ```
