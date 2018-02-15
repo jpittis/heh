@@ -1,0 +1,31 @@
+name: heh
+version: 0.1.0.0
+github: "jpittis/heh"
+license: BSD3
+author: "Jake Pittis"
+maintainer: "jake.pittis@gmail.com"
+copyright: "2018 Jake Pittis"
+
+extra-source-files:
+- README.md
+
+synopsis: Give me a development MySQL now!
+category: Web
+
+description: Please see the README on Github at <https://github.com/jpittis/heh>
+
+dependencies:
+- base >= 4.7 && < 5
+- turtle
+- text
+- foldl
+- unix
+
+executables:
+  heh:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
