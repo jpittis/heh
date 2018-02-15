@@ -35,7 +35,7 @@ restart = do
   running <- isRunning name ""
   if running then stop >> start else start
 
-repl =  do
+repl = do
   running <- isRunning name ""
   if running then runRepl else start >> runRepl
 
