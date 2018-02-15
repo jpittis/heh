@@ -5,9 +5,10 @@ import Turtle
 
 import qualified Control.Foldl as Fold (head)
 import Data.Maybe (isJust)
-import qualified Data.Text as Text (unwords)
+import qualified Data.Text as Text (unwords, pack, unpack)
 import System.Posix.Process (executeFile)
 import System.IO.Silently (silence)
+import System.Random (newStdGen, randomRs)
 
 parser =
       argText "start"  "start mysql container"
@@ -15,8 +16,7 @@ parser =
   <|> argText "resart" "restart mysql container"
   <|> argText "repl"   "start repl to mysql container"
 
-name     = "dev-mysql"
-password = "todo"
+name = "heh-mysql"
 
 main = do
   command <- options "heh" parser
@@ -29,7 +29,7 @@ main = do
 
 start = do
   existing <- isRunning name "-a"
-  if existing then docker "start" name else runMySQL name password
+  if existing then docker "start" name else runMySQL name
 
 stop = docker "stop" name >> docker "rm" name
 
@@ -39,7 +39,7 @@ restart = do
 
 repl = do
   running <- isRunning name ""
-  if running then runRepl else die "mysql is not running"
+  if running then runRepl name else die "mysql is not running"
 
 isRunning name flag = do
   front <- fold (grepName (inshell ("docker ps " <> flag) empty)) Fold.head
@@ -49,10 +49,11 @@ isRunning name flag = do
 
 docker command name = silence $ procs "docker" [command, name] empty
 
-runMySQL name password =
-  silence $ shells command empty
+runMySQL name = do
+  password <- genPassword
+  silence $ shells (command password) empty
   where
-    command =
+    command password =
       Text.unwords
         [ "docker run"
         , "--name " <> name
@@ -62,14 +63,16 @@ runMySQL name password =
         , "--log-bin --binlog-format='ROW'"
         ]
 
-runRepl =
+genPassword = Text.pack <$> fmap (take 16 . randomRs ('a','z')) newStdGen
+
+runRepl name =
   executeFile "docker" True args Nothing
   where
     args =
       [ "run"
       , "-it"
       , "--link"
-      , "dev-mysql:mysql"
+      , Text.unpack name <> ":mysql"
       , "--rm"
       , "mysql"
       , "sh"

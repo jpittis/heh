@@ -21,6 +21,7 @@ dependencies:
 - foldl
 - unix
 - silently
+- random
 
 executables:
   heh:
