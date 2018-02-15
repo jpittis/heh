@@ -7,6 +7,7 @@ import qualified Control.Foldl as Fold (head)
 import Data.Maybe (isJust)
 import qualified Data.Text as Text (unwords)
 import System.Posix.Process (executeFile)
+import System.IO.Silently (silence)
 
 parser =
       argText "start"  "start mysql container"
@@ -24,6 +25,7 @@ main = do
     "stop"    -> stop
     "restart" -> restart
     "repl"    -> repl
+    other     -> die $ "unknown command " <> other
 
 start = do
   existing <- isRunning name "-a"
@@ -37,7 +39,7 @@ restart = do
 
 repl = do
   running <- isRunning name ""
-  if running then runRepl else start >> runRepl
+  if running then runRepl else die "mysql is not running"
 
 isRunning name flag = do
   front <- fold (grepName (inshell ("docker ps " <> flag) empty)) Fold.head
@@ -45,10 +47,10 @@ isRunning name flag = do
   where
     grepName = grep $ has (text name)
 
-docker command name = procs "docker" [command, name] empty
+docker command name = silence $ procs "docker" [command, name] empty
 
 runMySQL name password =
-  shells command empty
+  silence $ shells command empty
   where
     command =
       Text.unwords
