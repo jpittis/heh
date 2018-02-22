@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Turtle 
+import Turtle hiding (choice)
 
 import qualified Control.Foldl as Fold (head)
 import Data.Maybe (isJust)
@@ -9,35 +9,64 @@ import qualified Data.Text as Text (unwords, pack, unpack)
 import System.Posix.Process (executeFile)
 import System.IO.Silently (silence)
 import System.Random (newStdGen, randomRs)
+import Control.Monad.Combinators
+import Data.Text (pack)
 
-parser =
-      argText "start"  "start mysql container"
-  <|> argText "stop"   "stop mysql container"
-  <|> argText "resart" "restart mysql container"
-  <|> argText "repl"   "start repl to mysql container"
+parser = choice
+  [ start
+  , stop
+  , restart
+  , repl
+  ]
+  where
+  defaultedServiceName = argText "service-name" "optional name for the mysql service" <|> pure defaultName
 
-name = "heh-mysql"
+  start :: Parser Command
+  start = subcommand "start" "start a mysql container" $
+    Start <$> defaultedServiceName
+          <*> (optInt "port" 'p' "port (default: 3306)" <|> pure 3306)
+
+  stop :: Parser Command
+  stop = subcommand "stop" "stop a mysql container" $
+    Stop <$> defaultedServiceName
+
+  restart :: Parser Command
+  restart = subcommand "restart" "restart a mysql container" $
+    Restart <$> defaultedServiceName
+
+  repl :: Parser Command
+  repl = subcommand "repl" "open a repl into mysql container" $
+    Repl <$> defaultedServiceName
+
+defaultName = "heh-mysql"
+
+data Command
+  = Start Text Int
+  | Stop Text
+  | Restart Text
+  | Repl Text
+  deriving (Show, Eq)
+
 
 main = do
   command <- options "heh" parser
   case command of
-    "start"   -> start
-    "stop"    -> stop
-    "restart" -> restart
-    "repl"    -> repl
-    other     -> die $ "unknown command " <> other
+    Start n p -> start n p
+    Stop  n  -> stop n
+    Restart n -> restart n
+    Repl  n  -> repl n
 
-start = do
+start name port = do
   existing <- isRunning name "-a"
-  if existing then docker "start" name else runMySQL name
+  if existing then docker "start" name else runMySQL name port
 
-stop = docker "stop" name >> docker "rm" name
+stop name = docker "stop" name >> docker "rm" name
 
-restart = do
+restart name = do
   running <- isRunning name ""
-  if running then stop >> start else start
+  if running then docker "restart" name else die "mysql is not running"
 
-repl = do
+repl name = do
   running <- isRunning name ""
   if running then runRepl name else die "mysql is not running"
 
@@ -49,7 +78,7 @@ isRunning name flag = do
 
 docker command name = silence $ procs "docker" [command, name] empty
 
-runMySQL name = do
+runMySQL name port = do
   password <- genPassword
   silence $ shells (command password) empty
   where
@@ -57,7 +86,7 @@ runMySQL name = do
       Text.unwords
         [ "docker run"
         , "--name " <> name
-        , "-p '0.0.0.0:3306:3306'"
+        , "-p '0.0.0.0:" <> pack (show port) <> ":3306'"
         , "-e MYSQL_ROOT_PASSWORD=" <> password
         , "-d mysql:latest --verbose --server-id=1"
         , "--log-bin --binlog-format='ROW'"

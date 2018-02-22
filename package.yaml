@@ -22,7 +22,7 @@ dependencies:
 - unix
 - silently
 - random
-
+- parser-combinators
 executables:
   heh:
     main: Main.hs
