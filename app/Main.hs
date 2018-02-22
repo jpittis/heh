@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Turtle 
+import Turtle hiding (choice)
 
 import qualified Control.Foldl as Fold (head)
 import Data.Maybe (isJust)
@@ -9,42 +9,62 @@ import qualified Data.Text as Text (unwords, pack, unpack)
 import System.Posix.Process (executeFile)
 import System.IO.Silently (silence)
 import System.Random (newStdGen, randomRs)
+import Control.Monad.Combinators
 
-parser =
-      subcommand "start"  "start mysql container" (pure Start)
-  <|> subcommand "stop"   "stop mysql container" (pure Stop)
-  <|> subcommand "resart" "restart mysql container" (pure Restart)
-  <|> subcommand "repl"   "start repl to mysql container" (pure Repl)
+parser = choice
+  [ start
+  , stop
+  , restart
+  , repl
+  ]
+  where
+  defaultedServiceName = argText "service-name" "optional name for the mysql service" <|> pure defaultName
 
-name = "heh-mysql"
+  start :: Parser Command
+  start = subcommand "start" "start mysql container" $
+    Start <$> defaultedServiceName
+
+  stop :: Parser Command
+  stop = subcommand "start" "start mysql container" $
+    Stop <$> defaultedServiceName
+
+  restart :: Parser Command
+  restart = subcommand "start" "start mysql container" $
+    Restart <$> defaultedServiceName
+
+  repl :: Parser Command
+  repl = subcommand "start" "start mysql container" $
+    Repl <$> defaultedServiceName
+
+defaultName = "heh-mysql"
 
 data Command
-  = Start
-  | Stop
-  | Restart
-  | Repl
+  = Start Text
+  | Stop Text
+  | Restart Text
+  | Repl Text
   deriving (Show, Eq)
 
 
 main = do
   command <- options "heh" parser
   case command of
-    Start   -> start
-    Stop    -> stop
-    Restart -> restart
-    Repl    -> repl
+    Start n -> start n
+    Stop  n  -> stop n
+    Restart n -> restart n
+    Repl  n  -> repl n
 
-start = do
+start name = do
   existing <- isRunning name "-a"
   if existing then docker "start" name else runMySQL name
 
-stop = docker "stop" name >> docker "rm" name
+stop name = docker "stop" name >> docker "rm" name
 
-restart = do
+restart name = do
   running <- isRunning name ""
-  if running then stop >> start else start
+  if running then stop name >> start name else start name
 
-repl = do
+repl name = do
   running <- isRunning name ""
   if running then runRepl name else die "mysql is not running"
 
