@@ -11,21 +11,28 @@ import System.IO.Silently (silence)
 import System.Random (newStdGen, randomRs)
 
 parser =
-      argText "start"  "start mysql container"
-  <|> argText "stop"   "stop mysql container"
-  <|> argText "resart" "restart mysql container"
-  <|> argText "repl"   "start repl to mysql container"
+      subcommand "start"  "start mysql container" (pure Start)
+  <|> subcommand "stop"   "stop mysql container" (pure Stop)
+  <|> subcommand "resart" "restart mysql container" (pure Restart)
+  <|> subcommand "repl"   "start repl to mysql container" (pure Repl)
 
 name = "heh-mysql"
+
+data Command
+  = Start
+  | Stop
+  | Restart
+  | Repl
+  deriving (Show, Eq)
+
 
 main = do
   command <- options "heh" parser
   case command of
-    "start"   -> start
-    "stop"    -> stop
-    "restart" -> restart
-    "repl"    -> repl
-    other     -> die $ "unknown command " <> other
+    Start   -> start
+    Stop    -> stop
+    Restart -> restart
+    Repl    -> repl
 
 start = do
   existing <- isRunning name "-a"
