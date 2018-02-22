@@ -71,7 +71,7 @@ repl name = do
   if running then runRepl name else die "mysql is not running"
 
 isRunning name flag = do
-  front <- fold (grepName (inshell ("docker ps " <> flag) empty)) Fold.head
+  front <- fold (grepName (inshell ("docker ps -f \"label=org.heh.container\"" <> flag) empty)) Fold.head
   return $ isJust front
   where
     grepName = grep $ has (text name)
@@ -88,6 +88,7 @@ runMySQL name port = do
         , "--name " <> name
         , "-p '0.0.0.0:" <> pack (show port) <> ":3306'"
         , "-e MYSQL_ROOT_PASSWORD=" <> password
+        , "-l org.heh.container=true"
         , "-d mysql:latest --verbose --server-id=1"
         , "--log-bin --binlog-format='ROW'"
         ]
