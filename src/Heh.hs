@@ -1,10 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Heh
-        ( start
-        , stop
-        , restart
-        , repl
-        , Command(..)
+        ( Command(..)
+        , run
         ) where
 
 import Turtle
@@ -22,6 +19,12 @@ data Command
   | Restart Text
   | Repl Text
   deriving (Show, Eq)
+
+run :: Command -> IO ()
+run (Start n p) = start n p
+run (Stop n)    = stop n
+run (Restart n) = restart n
+run (Repl n)    = repl n
 
 start name port = do
   existing <- isRunning name "-a"

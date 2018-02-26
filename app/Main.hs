@@ -35,11 +35,4 @@ parser = choice
 
 defaultName = "heh-mysql"
 
-main = do
-  command <- options "heh" parser
-  case command of
-    Start n p -> start n p
-    Stop n    -> stop n
-    Restart n -> restart n
-    Repl n    -> repl n
-
+main = run <$> options "heh" parser
