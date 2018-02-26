@@ -8,7 +8,7 @@ module Heh
         ) where
 
 import Turtle
-import qualified Control.Foldl as Fold (head)
+import qualified Control.Foldl as Fold (null)
 import Data.Maybe (isJust)
 import qualified Data.Text as Text (unwords, pack, unpack)
 import System.Posix.Process (executeFile)
@@ -37,9 +37,8 @@ repl name = do
   running <- isRunning name ""
   if running then runRepl name else die "mysql is not running"
 
-isRunning name flag = do
-  front <- fold (grepName (inshell ("docker ps -f \"label=org.heh.container\"" <> flag) empty)) Fold.head
-  return $ isJust front
+isRunning name flag =
+  fold (grepName (inshell ("docker ps -f \"label=org.heh.container\"" <> flag) empty)) Fold.null
   where
     grepName = grep $ has (text name)
 
