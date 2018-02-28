@@ -2,6 +2,7 @@
 module Heh
         ( Command(..)
         , run
+        , withMySQL
         ) where
 
 import Turtle
@@ -12,6 +13,7 @@ import System.Posix.Process (executeFile)
 import System.IO.Silently (silence)
 import System.Random (newStdGen, randomRs)
 import Data.Text (pack)
+import Control.Exception (bracket)
 
 data Command
   = Start Text Int
@@ -41,9 +43,10 @@ repl name = do
   if running then runRepl name else die "mysql is not running"
 
 isRunning name flag =
-  fold (grepName (inshell ("docker ps -f \"label=org.heh.container\"" <> flag) empty)) Fold.null
+  not <$> fold (grepName dockerPs) Fold.null
   where
     grepName = grep $ has (text name)
+    dockerPs       = inshell ("docker ps -f \"label=org.heh.container\"" <> flag) empty
 
 docker command name = silence $ procs "docker" [command, name] empty
 
@@ -78,3 +81,10 @@ runRepl name =
       , "-c"
       , "exec mysql -h\"$MYSQL_PORT_3306_TCP_ADDR\" -P\"$MYSQL_PORT_3306_TCP_PORT\" -uroot -p\"$MYSQL_ENV_MYSQL_ROOT_PASSWORD\""
       ]
+
+withMySQL :: Text -> Int -> (String -> IO a) -> IO a
+withMySQL name port = bracket startMySQL stopMySQL
+  where
+    host       = "localhost:" ++ show port
+    startMySQL = Heh.run (Heh.Start name port) >> return host
+    stopMySQL  = const (Heh.run $ Heh.Stop name)
