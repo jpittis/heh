@@ -20,6 +20,7 @@ parser = choice
   start = subcommand "start" "start a mysql container" $
     Start <$> defaultedServiceName
           <*> (optInt "port" 'p' "port (default: 3306)" <|> pure 3306)
+          <*> (optText "pass" 's' "password (default: none)" <|> pure "")
 
   stop :: Parser Command
   stop = subcommand "stop" "stop a mysql container" $
